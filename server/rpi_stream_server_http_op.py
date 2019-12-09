@@ -7,6 +7,7 @@ import time
 import sys
 import math
 from collections import deque
+from server.utils import Frame_rate_calculator
 
 def cal_distance(x1,x2,y1,y2):
     return math.sqrt((x2-x1)**2+(y2-y1)**2)
@@ -116,11 +117,14 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 # detector
 detector = Detector()
 
+fc = Frame_rate_calculator()
+
 
 r = requests.get('http://172.20.10.10:8000/stream.mjpg', auth=('user', 'password'), stream=True)
 if(r.status_code == 200):
     bytes = bytes()
     for chunk in r.iter_content(chunk_size=1024):
+        fc.start_record()
         bytes += chunk
         a = bytes.find(b'\xff\xd8')
         b = bytes.find(b'\xff\xd9')
@@ -136,7 +140,12 @@ if(r.status_code == 200):
             # detect
             detector.get_raw_data(datum.poseKeypoints)
             img = np.copy(datum.cvOutputData)
+
+            fc.frame_end()
+
             cv2.putText(img,detector.get_description(),(10,450),font,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(img,fc.get_frame_rate(),(10,50),font,1,(255,255,255),2,cv2.LINE_AA)
+
             cv2.imshow('i', img)
             
             if cv2.waitKey(1) == 27:
