@@ -102,7 +102,7 @@ sys.path.append('F:/openpose/build/python/openpose/Release')
 os.environ['PATH']  = os.environ['PATH'] + ';' + 'F:/openpose/build/x64/Release;' + 'F:/openpose/build/bin;'
 import pyopenpose as op
 
-params = {'model_folder':'F:/openpose/models'}
+params = {'model_folder':'F:/openpose/models','model_pose':'COCO'}
 
 opWrapper = op.WrapperPython()
 opWrapper.configure(params)
