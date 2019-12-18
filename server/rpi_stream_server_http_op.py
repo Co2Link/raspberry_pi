@@ -7,7 +7,7 @@ import time
 import sys
 import math
 from collections import deque
-from server.utils import Frame_rate_calculator
+from utils import Frame_rate_calculator
 
 def cal_distance(x1,x2,y1,y2):
     return math.sqrt((x2-x1)**2+(y2-y1)**2)
@@ -79,7 +79,6 @@ class Detector:
             return 0
 
     def _get_status(self):
-        print(self.status)
         if sum([status == 2 for status in self.status]) >= 14:
             # human awake
             return 2
@@ -103,7 +102,7 @@ sys.path.append('F:/openpose/build/python/openpose/Release')
 os.environ['PATH']  = os.environ['PATH'] + ';' + 'F:/openpose/build/x64/Release;' + 'F:/openpose/build/bin;'
 import pyopenpose as op
 
-params = {'model_folder':'F:/openpose/models','model_pose':'COCO'}
+params = {'model_folder':'F:/openpose/models'}
 
 opWrapper = op.WrapperPython()
 opWrapper.configure(params)
@@ -131,10 +130,10 @@ if(r.status_code == 200):
         if a != -1 and b != -1:
             jpg = bytes[a:b+2]
             bytes = bytes[b+2:]
-            i = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+            img = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
             
             datum = op.Datum()
-            datum.cvInputData = i
+            datum.cvInputData = img
             opWrapper.emplaceAndPop([datum])
 
             # detect
@@ -144,7 +143,7 @@ if(r.status_code == 200):
             fc.frame_end()
 
             cv2.putText(img,detector.get_description(),(10,450),font,1,(255,255,255),2,cv2.LINE_AA)
-            cv2.putText(img,fc.get_frame_rate(),(10,50),font,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(img,str(fc.get_frame_rate()),(10,50),font,1,(255,255,255),2,cv2.LINE_AA)
 
             cv2.imshow('i', img)
             
