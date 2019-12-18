@@ -1,5 +1,7 @@
 import time
 from collections import deque
+
+
 class Frame_rate_calculator:
     def __init__(self):
         self.start = 0
