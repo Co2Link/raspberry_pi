@@ -11,7 +11,6 @@ def valid_resolution(width, height, output_stride=16):
 
 
 def _process_input(source_img, scale_factor=1.0, output_stride=16):
-    print(source_img.shape)
     target_width, target_height = valid_resolution(
         source_img.shape[1] * scale_factor, source_img.shape[0] * scale_factor, output_stride=output_stride)
     scale = np.array([source_img.shape[0] / target_height, source_img.shape[1] / target_width])

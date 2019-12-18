@@ -35,6 +35,7 @@ def main():
                 model_outputs,
                 feed_dict={'image:0': input_image}
             )
+
             pose_scores, keypoint_scores, keypoint_coords = posenet.decode_multi.decode_multiple_poses(
                 heatmaps_result.squeeze(axis=0),
                 offsets_result.squeeze(axis=0),
@@ -46,21 +47,22 @@ def main():
 
             keypoint_coords *= output_scale
 
-            # # TODO this isn't particularly fast, use GL for drawing and display someday...
+            print(keypoint_coords.shape)
+            print(pose_scores.shape)
+            print(keypoint_scores.shape)
+
+            # # # TODO this isn't particularly fast, use GL for drawing and display someday...
             overlay_image = posenet.draw_skel_and_kp(
                 display_image, pose_scores, keypoint_scores, keypoint_coords,
                 min_pose_score=0.15, min_part_score=0.1)
-
             fc.frame_end()
 
-            cv2.putText(overlay_image,str(fc.get_frame_rate()),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+
+            cv2.putText(overlay_image,'FPS:'+str(fc.get_frame_rate()),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
 
             cv2.imshow('posenet', overlay_image)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) == 27:
                 break
-
-        print('Average FPS: ', frame_count / (time.time() - start))
-
 
 if __name__ == "__main__":
     main()

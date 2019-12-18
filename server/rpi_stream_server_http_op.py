@@ -102,7 +102,7 @@ sys.path.append('F:/openpose/build/python/openpose/Release')
 os.environ['PATH']  = os.environ['PATH'] + ';' + 'F:/openpose/build/x64/Release;' + 'F:/openpose/build/bin;'
 import pyopenpose as op
 
-params = {'model_folder':'F:/openpose/models'}
+params = {'model_folder':'F:/openpose/models','net_resolution':'320x176'}
 
 opWrapper = op.WrapperPython()
 opWrapper.configure(params)
@@ -122,8 +122,9 @@ fc = Frame_rate_calculator()
 r = requests.get('http://172.20.10.10:8000/stream.mjpg', auth=('user', 'password'), stream=True)
 if(r.status_code == 200):
     bytes = bytes()
+    fc.start_record()
+
     for chunk in r.iter_content(chunk_size=1024):
-        fc.start_record()
         bytes += chunk
         a = bytes.find(b'\xff\xd8')
         b = bytes.find(b'\xff\xd9')
@@ -136,14 +137,14 @@ if(r.status_code == 200):
             datum.cvInputData = img
             opWrapper.emplaceAndPop([datum])
 
-            # detect
+            # # detect
             detector.get_raw_data(datum.poseKeypoints)
             img = np.copy(datum.cvOutputData)
 
             fc.frame_end()
 
             cv2.putText(img,detector.get_description(),(10,450),font,1,(255,255,255),2,cv2.LINE_AA)
-            cv2.putText(img,str(fc.get_frame_rate()),(10,50),font,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(img,'FPS:'+str(fc.get_frame_rate()),(10,50),font,1,(255,255,255),2,cv2.LINE_AA)
 
             cv2.imshow('i', img)
             

@@ -19,7 +19,6 @@ class Frame_rate_calculator:
         return self.current_frame_rate
     def get_frame_rate(self):
         if time.time() - self.frame_rate_update_time > 1:
-            print(self.current_frame_rate)
             self.output_frame_rate = self.current_frame_rate
             self.frame_rate_update_time = time.time()
         return self.output_frame_rate
