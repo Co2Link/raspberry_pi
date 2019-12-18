@@ -8,6 +8,16 @@ import logging
 import socketserver
 from threading import Condition
 from http import server
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-r','--resolution',type=str,default='640x480',help='WxH')
+parser.add_argument('--sensor_mode',type=int,default=0)
+
+args = parser.parse_args()
+
+RESOLUTION = args.resolution.split('x')
+SENSOR_MODE = args.sensor_mode
 
 PAGE="""\
 <html>
@@ -81,7 +91,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-with picamera.PiCamera(resolution='640x480', framerate=24) as camera:
+with picamera.PiCamera(resolution='{}x{}'.format(*RESOLUTION), framerate=24,sensor_mode=SENSOR_MODE) as camera:
     output = StreamingOutput()
     #Uncomment the next line to change your Pi's Camera rotation (in degrees)
     #camera.rotation = 90
