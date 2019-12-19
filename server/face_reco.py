@@ -4,6 +4,7 @@ import os
 import pickle
 import cv2
 import numpy as np
+import time
 from tqdm import tqdm
 
 class Face_wrapper:
@@ -32,7 +33,10 @@ class Face_wrapper:
 
                 if name not in encoding_dict:
                     img = face_recognition.load_image_file(image_paths[idx])
-                    encoding_dict[name] = face_recognition.face_encodings(img)[0]
+                    try:
+                        encoding_dict[name] = face_recognition.face_encodings(img)[0]
+                    except IndexError as e:
+                        print("*** can not recognize a face from :{}  skipping ***".format(image_paths[idx]))
 
         with open(encoding_file_path,'wb') as f:
             pickle.dump(encoding_dict,f)
@@ -42,11 +46,11 @@ class Face_wrapper:
             self.known_face_encodings.append(value)
 
     def recognize(self,image,image_to_draw,resize_ratio=1):
-        small_img = cv2.resize(image,(0,0),fx=0.5,fy=0.5)
+        small_img = cv2.resize(image,(0,0),fx=1,fy=1)
         rgb_small_img = cv2.cvtColor(small_img,cv2.COLOR_BGR2RGB)
         
         if self.process_this_frame%3 == 0:
-            self.face_locations = face_recognition.face_locations(rgb_small_img)
+            self.face_locations = face_recognition.face_locations(rgb_small_img,model='cnn')
             face_encodings = face_recognition.face_encodings(rgb_small_img,self.face_locations)
 
             self.face_names = []
@@ -62,7 +66,7 @@ class Face_wrapper:
                 face_distances = face_recognition.face_distance(self.known_face_encodings,face_encoding)
                 best_match_index = np.argmin(face_distances)
                 if matches[best_match_index]:
-                    name = self.known_face_names[best_match_index]
+                    name = self.known_face_names[best_match_index].split('_')[0]
                 
                 self.face_names.append(name)
 
@@ -73,17 +77,17 @@ class Face_wrapper:
         for (top, right, bottom, left), name in zip(self.face_locations, self.face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
 
-            top *= 2
-            right *= 2
-            bottom *= 2
-            left *= 2
+            # top *= 2
+            # right *= 2
+            # bottom *= 2
+            # left *= 2
 
             # Draw a box around the face
             cv2.rectangle(image, (left, top), (right, bottom), (0, 0, 255), 2)
 
             # Draw a label image a name below the face
-            cv2.rectangle(image_to_draw, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-            cv2.putText(image_to_draw, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
+            cv2.rectangle(image_to_draw, (left, bottom), (right, bottom+35), (0, 0, 255), cv2.FILLED)
+            cv2.putText(image_to_draw, name, (left + 6, bottom + 15), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
 
         return  image_to_draw
     

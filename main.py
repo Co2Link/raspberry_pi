@@ -58,9 +58,10 @@ def main():
 
         cv2.putText(img,detector.get_description(),(10,450),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         cv2.putText(img,'FPS:'+str(fc.get_frame_rate()),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
-
+        
+        time1=time.time()
         img = fw.recognize(frame,img)
-
+        print(time.time()-time1)
         cv2.imshow('i', img)
         
         if cv2.waitKey(1) == 27:
