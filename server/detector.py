@@ -61,7 +61,7 @@ class Detector:
                             if index in index_list:
                                 dist_list.append(cal_dist_by_rawdata(index,1,raw_data))
                         # print('比例： ',sum(dist_list)/len(dist_list)/com)
-                        if sum(dist_list)/len(dist_list) < 1.1*com or sum(dist_list)/len(dist_list) > 1.45*com:
+                        if sum(dist_list)/len(dist_list) < 1.1*com or sum(dist_list)/len(dist_list) > 1.55*com:
                             return 2
                 
                 return 1
