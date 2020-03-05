@@ -12,7 +12,7 @@ from server.streamCapture import StreamCapture_http
 from server.face_reco import Face_wrapper
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--url',type=str,default='http://172.20.10.10:8000/stream.mjpg')
+parser.add_argument('--url',type=str,default='http://192.168.137.164:8000/stream.mjpg')
 args = parser.parse_args()
 
 
@@ -31,7 +31,7 @@ def main():
     detector = Detector()
 
     # face_recognition
-    fw = Face_wrapper('images/test')
+    # fw = Face_wrapper('images/test')
 
     fc = Frame_rate_calculator()
 
@@ -60,7 +60,7 @@ def main():
         cv2.putText(img,'FPS:'+str(fc.get_frame_rate()),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         
         time1=time.time()
-        img = fw.recognize(frame,img)
+        # img = fw.recognize(frame,img)
         print(time.time()-time1)
         cv2.imshow('i', img)
         
