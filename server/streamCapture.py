@@ -53,7 +53,7 @@ class StreamCapture_socket:
                     yield cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
         finally:
             self.conn.close()
-            server_socket.close()
+            self.client_socket.close()
 
     def read(self):
         try:
@@ -62,4 +62,8 @@ class StreamCapture_socket:
         except Exception as e:
             print(e)
             return False,None
+    
+    def close(self):
+        self.conn.close()
+        self.client_socket.close()
 
