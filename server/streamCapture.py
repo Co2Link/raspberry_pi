@@ -32,28 +32,34 @@ class StreamCapture_http:
 
 class StreamCapture_socket:
 
-    def __init__(self):
+    def __init__(self,ipaddr,port):
         
-        self.server_socket = socket.socket()
-        self.server_socket.bind(('0.0.0.0',8000))
+        self.client_socket = socket.socket()
+        self.client_socket.connect((ipaddr,port))
+        self.conn = self.client_socket.makefile('rb')
+        self.gen = self._frame_generator()
+        self.bytes = bytes()
 
-    def connect(self):
-        self.server_socket.listen(0)
-        self.connection = server_socket.accept()[0].makefile('rb')
-
-    def get_frame(self):
-        bytes = bytes()
+    def _frame_generator(self):
         try:
             while True:
-                bytes += connection.read(1024)
+                self.bytes += self.conn.read(1024)
                 # All jpeg frames start with marker 0xff 0xd8 and end with 0xff 0xd9
-                a = bytes.find(b'\xff\xd8')
-                b = bytes.find(b'\xff\xd9')
+                a = self.bytes.find(b'\xff\xd8')
+                b = self.bytes.find(b'\xff\xd9')
                 if a != -1 and b != -1:
-                    jpg = bytes[a:b+2]
-                    bytes = bytes[b+2:]
+                    jpg = self.bytes[a:b+2]
+                    self.bytes = self.bytes[b+2:]
                     yield cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
         finally:
-            connection.close()
+            self.conn.close()
             server_socket.close()
+
+    def read(self):
+        try:
+            img = next(self.gen)
+            return True,img
+        except Exception as e:
+            print(e)
+            return False,None
 
