@@ -46,9 +46,9 @@ def listenToClient(client,address):
             camera.wait_recording(1000000)
     except ConnectionResetError as e:
         print('connection closed by client({})'.format(address))
+    finally:
         client.close()
         camera.close()
-    finally:
         finish = time.time()
     print('Sent %d images in %d seconds at %.2ffps' % (
         output.count, finish-start, output.count / (finish-start)))
