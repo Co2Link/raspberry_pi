@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import glob
 import copy
-from server.utils import createLineIterator
+from server.utils import createLineIterator, line_intersection
 
 # RGB
 Black = (0,0,0)
@@ -28,6 +28,12 @@ class Line:
         self.alpha = -alpha if alpha < 0 else 180 - alpha
         self.group = ''
 
+    def get_point(self):
+        return (self.x1,self.y1),(self.x2,self.y2)
+
+    def get_lower_point(self):
+        return (self.x1,self.y1) if self.y1 > self.y2 else (self.x2,self.y2)
+
     def set_group(self,group):
         self.group = group
 
@@ -51,7 +57,6 @@ class Line:
     def set_info(self, info):
         self.info = info
 
-
 class BedDetector:
     def __init__(self,threshold = 100,minLineLength = 100,maxLineGap = 20,kernelSize = (5,5),pixel_deviation = 10,alpha_deviation = 15 ):
         self.threshold = threshold
@@ -61,8 +66,11 @@ class BedDetector:
         self.pixel_deviation = pixel_deviation
         self.alpha_deviation = alpha_deviation
 
-    def detect(self,img):
+    def detect(self,img,debug=False):
         self.H, self.W, _ = img.shape
+
+        intxn_points = {'p1':None, 'p2':None, 'p3':None, 'p4':None}
+        success = True
         
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         high_thresh, thresh_im = cv2.threshold(img_gray, 0,255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -83,31 +91,61 @@ class BedDetector:
             lines_extended = self._extend_lines(lines)
             lines_average = self._average_lines(lines_extended)
             lines_adjusted = self._adjust_lines(edges_2, lines_average)
-        
-        # debug
-        cv2.imshow('img', img)
-        cv2.imshow('img_gray', img_gray)
-        cv2.imshow('edges_1', edges_1)
-        cv2.imshow('dilate', dilate)
-        cv2.imshow('edges_2', edges_2)
-
-        if raw_lines is not None:
-            cv2.imshow('lines', self._draw_debug(np.copy(img), lines))
-
-            cv2.imshow('lines_extended', self._draw_debug(np.copy(img), lines_extended))
-
-            cv2.imshow('lines_average', self._draw_debug(np.copy(img), lines_average))
-
-            cv2.imshow('lines_adjuested', self._draw_debug(np.copy(img), lines_adjusted))
             
-        raw_lines_2 = cv2.HoughLinesP(edges_1, 1, np.pi/180, threshold=self.threshold, minLineLength=self.minLineLength, maxLineGap=self.maxLineGap)
-        if raw_lines_2 is not None:
-            lines_2 = self._classify_lines(raw_lines_2)
-            cv2.imshow('lines_2', self._draw_debug(np.copy(img), lines_2))
+            # p1: uppper-left, p2: lower-left, p3: lower-right, p4: upper-right
 
-        # if cv2.waitKey(5) == 27:
-        #     exit(0)
-        cv2.waitKey(0)
+            for idx_1 in range(len(lines_adjusted)):
+                for idx_2 in range(idx_1+1,len(lines_adjusted)):
+                    line_1, line_2 = lines_adjusted[idx_1], lines_adjusted[idx_2]
+                    x, y = line_intersection(line_1.get_point(),line_2.get_point())
+                    print(x,y)
+                    if x >= 0 and x < self.W and y >= 0 and y < self.H:
+                        print(x,y)
+                        if line_1.group in ['UHL','LVL'] and line_2.group in ['UHL','LVL']:
+                            intxn_points['p1'] = (x,y)
+                        elif line_1.group in ['LHL','LVL'] and line_2.group in ['LHL','LVL']:
+                            intxn_points['p2'] = (x,y)
+                        elif line_1.group in ['LHL','RVL'] and line_2.group in ['LHL','RVL']:
+                            intxn_points['p3'] = (x,y)
+                        elif line_1.group in ['UHL','RVL'] and line_2.group in ['UHL','RVL']:
+                            intxn_points['p4'] = (x,y)
+
+            line_groups = self._group_lines(lines_adjusted)
+            print(intxn_points)
+            if all(intxn_points[i] != None for i in ['p1','p4']) and all(intxn_points[i] == None for i in ['p2','p3']):
+                LVL, RVL = line_groups['LVL'][0], line_groups['RVL'][0]
+                intxn_points['p2'] = LVL.get_lower_point()
+                intxn_points['p3'] = RVL.get_lower_point()
+            elif all(intxn_points[i] != None for i in ['p1','p2','p3','p4']):
+                pass
+            else:
+                print('cant detect the upper left or the upper right point')
+                success = False
+                # return None
+        # debug
+        if debug:
+            cv2.imshow('img', img)
+            cv2.imshow('img_gray', img_gray)
+            cv2.imshow('edges_1', edges_1)
+            cv2.imshow('dilate', dilate)
+            cv2.imshow('edges_2', edges_2)
+
+            if raw_lines is not None:
+                cv2.imshow('lines', self._draw_debug(np.copy(img), lines))
+
+                cv2.imshow('lines_extended', self._draw_debug(np.copy(img), lines_extended))
+
+                cv2.imshow('lines_average', self._draw_debug(np.copy(img), lines_average))
+
+                cv2.imshow('lines_adjuested', self._draw_debug(np.copy(img), lines_adjusted,intxn_points))
+                
+
+            if cv2.waitKey(5) == 27:
+                exit(0)
+            # cv2.waitKey(0)
+        
+        return intxn_points, success, self._draw_debug(np.copy(img), lines_adjusted,intxn_points)
+
     def _adjust_lines(self,img,lines):
         lines = copy.deepcopy(lines)
         lines_adjusted = []
@@ -257,13 +295,25 @@ class BedDetector:
             cv2.line(src, (line.x1,line.y1), (line.x2,line.y2), BGR2RGB(color), 3)
         return src
 
-    def _draw_debug(self,src,lines):
+    def _draw_debug(self,src,lines,points = {}):
         src = self._draw_lines(src,lines)
         for line in lines:
             cv2.circle(src, line.mid_point, 3, (255,0,0), -1)
             cv2.putText(src, str(int(line.alpha)) + ' k: {:.2f}'.format(line.k), line.mid_point,cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+        for key,value in points.items():
+            if value is not None:
+                cv2.circle(src, value,5, (0,0,0),-1)
+                cv2.putText(src, key, value,cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
         return src
 
+    def _group_lines(self, lines):
+        groups = {}
+        for line in lines:
+            if line.group not in groups:
+                groups[line.group] = [line]
+            else:
+                groups[line.group].append(line)
+        return groups
 if __name__ == "__main__":
     image_paths = glob.glob('../data/images/*.jpg')
 
@@ -276,4 +326,4 @@ if __name__ == "__main__":
 
     for path in image_paths:
         img = cv2.imread(path)
-        detector.detect(img)
+        detector.detect(img,True)
