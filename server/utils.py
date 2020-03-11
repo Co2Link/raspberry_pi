@@ -25,6 +25,7 @@ class Frame_rate_calculator:
             self.frame_rate_update_time = time.time()
         return self.output_frame_rate
 
+def createLineIterator(P1,P2,img):
     img = copy.copy(img)
     """
     Produces and array that consists of the coordinates and intensities of each pixel in a line between two points
