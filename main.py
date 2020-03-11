@@ -27,7 +27,7 @@ def main():
     os.environ['PATH']  = os.environ['PATH'] + ';' + 'F:/openpose/build/x64/Release;' + 'F:/openpose/build/bin;'
     import pyopenpose as op
 
-    params = {'model_folder':'F:/openpose/models'}
+    params = {'model_folder':'F:/openpose/models', 'render_threshold':0.4}
 
     opWrapper = op.WrapperPython()
     opWrapper.configure(params)
@@ -38,7 +38,7 @@ def main():
 
     fc = Frame_rate_calculator()
 
-    cap = StreamCapture_socket('192.168.137.164', 8000)
+    cap = StreamCapture_socket('192.168.137.84', 8000)
 
     ret = True
 
@@ -57,11 +57,11 @@ def main():
         if cv2.waitKey(1) == 27:
             exit(0)
         count += 1
-        if success and count > 40:
+        if success and count > 30:
             break
 
     # detector
-    detector = Detector(bed_location = intxn_points)
+    detector = Detector(bed_location = intxn_points, confidence=0.4)
 
     while ret:
         ret,frame = cap.read()

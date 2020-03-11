@@ -11,70 +11,71 @@ def cal_dist_by_rawdata(index_1,index_2,raw_data):
     return cal_distance(raw_data[0,index_1,0],raw_data[0,index_2,0],raw_data[0,index_1,1],raw_data[0,index_2,1])
 
 class Detector:
-    def __init__(self,bed_location):
-        self.keypoints = deque(maxlen=20)
+    def __init__(self,bed_location,confidence = 0.05):
         self.status = deque(maxlen=20)
         self.start = time.time()
         self.last_time = self.start
         self.bed_location = bed_location
         self.on_the_bed = True
-    def get_raw_data(self,keypoint):
-        self.keypoints.append(keypoint)
-        self.status.append(self._raw_data_to_status(keypoint))
+        self.confidence = confidence
+    def get_raw_data(self,raw_data):
+        self.status.append(self._raw_data_to_status(raw_data))
     
     def _raw_data_to_status(self,raw_data):
-        try:
+        """
+            input:
+                raw_data: 0 or (person_num, point_num, 3)  3 for (x, y, confidence)
+        """
+        if raw_data.shape != ():
             index_list = []
-            for index,i in enumerate(raw_data[0,:,0]):
-                if i != 0:
+            for index,i in enumerate(raw_data[0,:,2]):
+                if i >= self.confidence:
                     index_list.append(index)
-            self._person_on_bed(raw_data, index_list)
             
-            if any(x in index_list for x in [0,15,16,17,18]) or len(index_list) > 10 :
-                # if time.time()-self.last_time > 1:
-                #     print('time: {}'.format(time.time()-self.start))
-                #     self.last_time = time.time()
+            if any(x in index_list for x in [0,15,16,17,18]) or len(index_list) >= 3 :
 
-                #     if 0 in index_list and 1 in index_list:
-                #         print('dist_01 = {}'.format(cal_dist_by_rawdata(0,1,raw_data)))
-                #     if 1 in index_list and 2 in index_list:
-                #         print('dist_12 = {}'.format(cal_dist_by_rawdata(2,1,raw_data)))
-                #     if 5 in index_list and 1 in index_list:
-                #         print('dist_15 = {}'.format(cal_dist_by_rawdata(5,1,raw_data))) 
+                self._person_on_bed(raw_data, index_list)
 
-                #     if 17 in index_list and 1 in index_list:
-                #         print('dist_17_1 = {}'.format(cal_dist_by_rawdata(17,1,raw_data)))
-                #     if 16 in index_list and 1 in index_list:
-                #         print('dist_16_1 = {}'.format(cal_dist_by_rawdata(16,1,raw_data)))
-                #     if 15 in index_list and 1 in index_list:
-                #         print('dist_15_1 = {}'.format(cal_dist_by_rawdata(15,1,raw_data)))
-                #     if 18 in index_list and 1 in index_list:
-                #         print('dist_18_1 = {}'.format(cal_dist_by_rawdata(18,1,raw_data)))
-                    
-                #     print()
+                if all(x not in index_list for x in [15,16,0]):
+                    return 2
+
                 if any(x in index_list for x in [1,2,5]):
-                    if all(x in index_list for x in [0,1,2]) and (cal_dist_by_rawdata(0,1,raw_data) < 1.05*cal_dist_by_rawdata(1,2,raw_data) or cal_dist_by_rawdata(0,1,raw_data) > 1.6*cal_dist_by_rawdata(1,2,raw_data)):
-                        return 2
-                    if all(x in index_list for x in [0,1,5]) and (cal_dist_by_rawdata(0,1,raw_data) < 1.05*cal_dist_by_rawdata(1,5,raw_data) or cal_dist_by_rawdata(0,1,raw_data) > 1.6*cal_dist_by_rawdata(1,5,raw_data)):
-                        return 2
+                    
                     if 1 in index_list and (2 in index_list or 5 in index_list) and any(x in index_list for x in [17,18]):
                         if 2 in index_list:
                             com = cal_dist_by_rawdata(1,2,raw_data)
                         elif 5 in index_list:
                             com = cal_dist_by_rawdata(1,5,raw_data)
                         dist_list = []
-                        for index in [15,16,17,18]:
+                        for index in [17,18]:
                             if index in index_list:
                                 dist_list.append(cal_dist_by_rawdata(index,1,raw_data))
-                        # print('比例： ',sum(dist_list)/len(dist_list)/com)
-                        if sum(dist_list)/len(dist_list) < 1.1*com or sum(dist_list)/len(dist_list) > 1.55*com:
+                        
+                        if sum(dist_list)/len(dist_list) < 1.05*com:
+                            # if 15 in index_list and 17 in index_list
+                            print('比例： ',sum(dist_list)/len(dist_list)/com)
                             return 2
+
+                    if all(x in index_list for x in [0,1,2]) and (cal_dist_by_rawdata(0,1,raw_data) < 1.05*cal_dist_by_rawdata(1,2,raw_data)):
+                        print("比例1 {:.2f}".format(cal_dist_by_rawdata(0,1,raw_data)/cal_dist_by_rawdata(1,2,raw_data)))
+                        return 2
+                    if all(x in index_list for x in [0,1,5]) and (cal_dist_by_rawdata(0,1,raw_data) < 1.05*cal_dist_by_rawdata(1,5,raw_data)):
+                        print("比例2 {:.2f}".format(cal_dist_by_rawdata(0,1,raw_data)/cal_dist_by_rawdata(1,5,raw_data)))
+
+                        return 2
+
+
+
+                # print("比例1 {:.2f}".format(cal_dist_by_rawdata(0,1,raw_data)/cal_dist_by_rawdata(1,2,raw_data)))
+                # print("比例2 {:.2f}".format(cal_dist_by_rawdata(0,1,raw_data)/cal_dist_by_rawdata(1,5,raw_data)))
+
 
                 return 1
             else:
                 return 0
             
-        except:
+        else:
+            # nothing detected
             return 0
 
     def _get_status(self):
