@@ -63,7 +63,7 @@ class StreamCapture_socket:
             print(e)
             return False,None
     
-    def close(self):
+    def release(self):
         self.conn.close()
         self.client_socket.close()
 
