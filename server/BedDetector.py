@@ -96,7 +96,6 @@ class BedDetector:
             lines_adjusted = self._adjust_lines(edges_2, lines_average)
 
             # p1: uppper-left, p2: lower-left, p3: lower-right, p4: upper-right
-
             for idx_1 in range(len(lines_adjusted)):
                 for idx_2 in range(idx_1+1, len(lines_adjusted)):
                     line_1, line_2 = lines_adjusted[idx_1], lines_adjusted[idx_2]
@@ -297,7 +296,7 @@ class BedDetector:
                     mid_point_buf[key], alpha_sum_H/length_H, self.shape)
             line.set_group(key)
             lines_average.append(line)
-            
+
         lines_average = self._extend_lines(lines_average)
 
         return lines_average
