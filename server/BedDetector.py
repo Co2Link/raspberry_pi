@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import glob
 import copy
-from utils import createLineIterator, line_intersection
+from server.utils import createLineIterator, line_intersection
 
 # RGB
 Black = (0, 0, 0)
@@ -70,8 +70,8 @@ class BedDetector:
         self.shape = self.H, self.W
 
         intxn_points = {'p1': None, 'p2': None, 'p3': None, 'p4': None}
-        success = True
-        img_debug = None
+        success = False
+        img_debug = img
 
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         high_thresh, thresh_im = cv2.threshold(
@@ -101,9 +101,7 @@ class BedDetector:
                     line_1, line_2 = lines_adjusted[idx_1], lines_adjusted[idx_2]
                     x, y = line_intersection([line_1.point1, line_1.point2], [
                                              line_2.point1, line_2.point2])
-                    print(x, y)
                     if x >= 0 and x < self.W and y >= 0 and y < self.H:
-                        print(x, y)
                         if line_1.group in ['UHL', 'LVL'] and line_2.group in ['UHL', 'LVL']:
                             intxn_points['p1'] = (x, y)
                         elif line_1.group in ['LHL', 'LVL'] and line_2.group in ['LHL', 'LVL']:
@@ -114,17 +112,19 @@ class BedDetector:
                             intxn_points['p4'] = (x, y)
 
             line_groups = self._group_lines(lines_adjusted)
-            print(intxn_points)
             if all(intxn_points[i] != None for i in ['p1', 'p4']) and all(intxn_points[i] == None for i in ['p2', 'p3']):
+                success = True
                 LVL, RVL = line_groups['LVL'][0], line_groups['RVL'][0]
                 intxn_points['p2'] = LVL.get_lower_point()
                 intxn_points['p3'] = RVL.get_lower_point()
             elif all(intxn_points[i] != None for i in ['p1', 'p2', 'p3', 'p4']):
-                pass
+                success = True
             else:
                 print('cant detect the upper left or the upper right point')
-                success = False
                 # return None
+        
+            img_debug = self._draw_debug(np.copy(img), lines_adjusted, intxn_points)
+
         # debug
         if debug:
             cv2.imshow('img', img)
@@ -142,8 +142,6 @@ class BedDetector:
                 cv2.imshow('lines_average', self._draw_debug(
                     np.copy(img), lines_average))
 
-                img_debug = self._draw_debug(
-                    np.copy(img), lines_adjusted, intxn_points)
 
                 cv2.imshow('lines_adjuested', img_debug)
 
