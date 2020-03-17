@@ -1,6 +1,7 @@
 from server.streamCapture import StreamCapture_socket
 import cv2
 import argparse
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--record', action="store_true")
@@ -37,11 +38,20 @@ if args.record:
 else:
     #Stream
     ret = True
+    count = 0
+    if not os.path.exists('output'):
+        os.makedirs('output')
     while ret:
         ret, img = cap.read()
         
         cv2.imshow('img', img)
 
-        if cv2.waitKey(30) == 27:
+        key = cv2.waitKey(30)
+        if key == 27:
             exit(0)
+        elif key == 32:
+            path = 'output/image_{}.jpg'.format(count)
+            cv2.imwrite(path,img)
+            print('saving image at {}'.format(path))
+            count += 1
 
